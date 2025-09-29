@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+// @ts-ignore
 import "slick-carousel/slick/slick.css";
+// @ts-ignore
 import "slick-carousel/slick/slick-theme.css";
 import Slider from "react-slick";
 import DOMPurify from "isomorphic-dompurify";
