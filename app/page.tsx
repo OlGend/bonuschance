@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 
 type BrandPair = {
   brand: { brand_logo: string; casino_brand: string; id?: string | number };
-  content: { value: string; our_link: string };
+  content: { value: string; our_link: string; geo: string }; // ← ДОБАВИЛ geo
 };
 
 const ALLOWED = ['partner1039', 'partner1043', 'partner1044', 'partner1045', 'partnerCLD']; // ← ДОБАВИЛ
@@ -95,7 +95,7 @@ export default async function Home({
           brands={processedBrandsVip}
           keyword={keyword}
           partnerId={partner_id}
-          ad_campaign_id={ad_campaign_id}
+          adCampaignId={ad_campaign_id}
         />
         <div className={`bg-primary ${styles.flexStart}`}>
           <div className={`${styles.boxWidth}`}>
