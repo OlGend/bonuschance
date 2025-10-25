@@ -1,3 +1,5 @@
+// app/page.tsx (bonuschange проект)
+
 import styles from "@/styles/style";
 import Companies from "../components/companies";
 import { cookies } from "next/headers";
@@ -14,6 +16,9 @@ import {
   Footer,
 } from "@/components";
 import { Metadata } from "next";
+import Frame from "@/components/Frame";
+import { CookieWriter } from "@/components/CookieWriter";
+import { getUserCountry } from "@/lib/geo"; // ← ДОБАВИЛ
 
 export const metadata: Metadata = {
   title: "Bonus Chance",
@@ -23,22 +28,41 @@ type BrandPair = {
   brand: { brand_logo: string; casino_brand: string; id?: string | number };
   content: { value: string; our_link: string };
 };
-export default async function Home() {
+
+const ALLOWED = ['partner1039', 'partner1043', 'partner1044', 'partner1045', 'partnerCLD']; // ← ДОБАВИЛ
+
+export default async function Home({
+  searchParams, // ← ДОБАВИЛ
+}: {
+  searchParams: { partner?: string; keyword?: string; ad_campaign_id?: string };
+}) {
   const cookieStore = await cookies();
 
-  const partner_id = cookieStore.get("partnerId")?.value ?? "partner1039";
-  const keyword = cookieStore.get("rawKeyword")?.value ?? "";
-  const ad_campaign_id = cookieStore.get("ad_campaign_id")?.value ?? "";
+  // ← ИЗМЕНИЛ: приоритет URL → cookies
+  const urlPartner = searchParams.partner && ALLOWED.includes(searchParams.partner) 
+    ? searchParams.partner 
+    : null;
 
+  const partner_id = urlPartner || cookieStore.get("partnerId")?.value || "partner1000";
+  const keyword = searchParams.keyword || cookieStore.get("rawKeyword")?.value || "";
+  const ad_campaign_id = searchParams.ad_campaign_id || cookieStore.get("ad_campaign_id")?.value || "";
+
+  console.log('👤 Partner:', partner_id, urlPartner ? '(from URL)' : '(from cookies)');
+
+  // ← ДОБАВИЛ: определение GEO
+  const geo = await getUserCountry();
+  console.log('🌍 GEO:', geo);
+
+  // ← ИЗМЕНИЛ: динамический geo вместо хардкода CA
   const hottest = `https://born.topbon.us/end/fetch/brand_fetcher.php?partner_id=${encodeURIComponent(
     partner_id
-  )}&geo=CA&category=Hottest`;
+  )}&geo=${geo}&category=Hottest`;
   const popular = `https://born.topbon.us/end/fetch/brand_fetcher.php?partner_id=${encodeURIComponent(
     partner_id
-  )}&geo=CA&category=Popular`;
+  )}&geo=${geo}&category=Popular`;
   const vip = `https://born.topbon.us/end/fetch/brand_fetcher.php?partner_id=${encodeURIComponent(
     partner_id
-  )}&geo=CA&category=Vip`;
+  )}&geo=${geo}&category=Vip`;
 
   const res = await fetch(hottest, { next: { revalidate: 300 } });
   if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
@@ -52,9 +76,11 @@ export default async function Home() {
   if (!res3.ok) throw new Error(`fetch failed: ${res3.status}`);
   const data3: any[] = await res3.json();
 
-  const processedBrandsHottest = processDataNoGeo(data, partner_id);
-  const processedBrandsPopular = processDataNoGeo(data2, partner_id);
-  const processedBrandsVip = processDataNoGeo(data3, partner_id);
+  // ← ИЗМЕНИЛ: передаем geo в функцию
+  const processedBrandsHottest = processDataNoGeo(data, partner_id, geo);
+  const processedBrandsPopular = processDataNoGeo(data2, partner_id, geo);
+  const processedBrandsVip = processDataNoGeo(data3, partner_id, geo);
+
   return (
     <>
       <div className="bg-primary w-full overflow-hidden">
@@ -63,6 +89,14 @@ export default async function Home() {
             <Navbar />
           </div>
         </div>
+        <CookieWriter />
+
+        <Frame
+          brands={processedBrandsVip}
+          keyword={keyword}
+          partnerId={partner_id}
+          ad_campaign_id={ad_campaign_id}
+        />
         <div className={`bg-primary ${styles.flexStart}`}>
           <div className={`${styles.boxWidth}`}>
             <Hero
@@ -83,10 +117,6 @@ export default async function Home() {
 
         <div className={`bg-primary ${styles.paddingX} ${styles.flexStart}`}>
           <div className={`${styles.boxWidth}`}>
-            {/* <Stats /> */}
-            {/* <Business /> */}
-            {/* <Billing /> */}
-            {/* <CardDeal /> */}
             <div className="w-full flex flex-col justify-center items-center flex-col sm:mb-10 mb-6 relative z-[1]">
               <h1 className="text-center text-[36px] font-poppins font-semibold ss:leading-[46.8px] leading-[66.8px] text-white">
                 Newly bonuses
@@ -117,24 +147,6 @@ export default async function Home() {
 }
 
 // ---------- helpers ----------
-function parseJson(v: unknown) {
-  if (!v) return null;
-  if (typeof v === "string") {
-    try {
-      return JSON.parse(v);
-    } catch {
-      return null;
-    }
-  }
-  if (typeof v === "object") return v as Record<string, unknown>;
-  return null;
-}
-
-// type guard, чтобы TS понял, что это BrandPair
-function isBrandPair(x: any): x is BrandPair {
-  return Boolean(x && x.brand && x.content && x.content.our_link);
-}
-
 type LangContent = { geo?: string; value?: string; our_link?: string };
 type LangBlock = {
   partner_id?: string;
