@@ -16,7 +16,7 @@ import {
   Footer,
 } from "@/components";
 import { Metadata } from "next";
-import Frame from "@/components/Frame";
+// import Frame from "@/components/Frame";
 import { CookieWriter } from "@/components/CookieWriter";
 import { getUserCountry } from "@/lib/geo"; // ← ДОБАВИЛ
 
@@ -91,12 +91,12 @@ export default async function Home({
         </div>
         <CookieWriter />
 
-        <Frame
+        {/* <Frame
           brands={processedBrandsVip}
           keyword={keyword}
           partnerId={partner_id}
           adCampaignId={ad_campaign_id}
-        />
+        /> */}
         <div className={`bg-primary ${styles.flexStart}`}>
           <div className={`${styles.boxWidth}`}>
             <Hero
